@@ -4,6 +4,8 @@ import android.content.Context
 import android.icu.text.SimpleDateFormat
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Build
+import android.content.res.Configuration
 import com.bright.sunriseset.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -21,33 +23,24 @@ import java.util.Locale
 class PlanetInfoActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private var locale: Locale? = Locale("zh", "CN") ;
+    private var locale: Locale = Locale("zh", "CN")
 
-    /**
-     * Called when the activity is first created. This function initializes the activity, inflates the layout,
-     * retrieves the current time, and asynchronously fetches sunrise and sunset times from an API.
-     * The fetched times are then dynamically localized and displayed in Chinese on TextViews.
-     *
-     * @param savedInstanceState If the activity is being re-initialized after previously being shut down,
-     *                           this Bundle contains the data it most recently supplied in onSaveInstanceState(Bundle).
-     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Update the locale for the application context
+        val config = resources.configuration
+        Locale.setDefault(locale)
+        config.setLocale(locale)
+        config.setLayoutDirection(locale)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            applicationContext.createConfigurationContext(config)
+        }
+        resources.updateConfiguration(config, resources.displayMetrics)
 
         // Inflate the layout using View Binding
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-
-        //change the language to Chinese
-        val config = resources.configuration
-        Locale.setDefault(locale)
-        config.setLocale(locale)
-
-        resources.configuration.updateFrom(config)
-
-        // Get the current time
-        val currentTime = LocalDateTime.now()
 
         // Asynchronously fetch sunrise and sunset times
         GlobalScope.launch(Dispatchers.Main) {
@@ -58,20 +51,14 @@ class PlanetInfoActivity : AppCompatActivity() {
             val sunriseTime = sunriseDeferred.await()
             val sunsetTime = sunsetDeferred.await()
 
-
-
-
-            // If both sunrise and sunset times are available, localize and display them in Chinese
+            // If both sunrise and sunset times are available, localize and display them
             if (sunriseTime != null && sunsetTime != null) {
-                // Localize sunrise and sunset times
                 val localizedSunrise = getLocalizedTime(sunriseTime, this@PlanetInfoActivity)
                 val localizedSunset = getLocalizedTime(sunsetTime, this@PlanetInfoActivity)
 
                 // Display localized times on TextViews
-                // Display localized times on TextViews
                 binding.textViewSunrise.text = getString(R.string.SunriseTime) + localizedSunrise
                 binding.textViewSunset.text = getString(R.string.SunsetTime) + localizedSunset
-
             }
         }
     }
